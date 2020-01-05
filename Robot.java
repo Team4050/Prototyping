@@ -7,7 +7,11 @@
 
 package frc.robot;
 
+import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.Spark;
+import edu.wpi.first.wpilibj.SpeedControllerGroup;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -19,6 +23,27 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  * project.
  */
 public class Robot extends TimedRobot {
+
+  // Use this area to initialize different parts of the robot and certain variables.
+
+  // motor init
+  private Spark frontLeft;
+  private Spark frontRight;
+  private Spark rearLeft;
+  private Spark rearRight;
+
+  // joystick init
+  private Joystick leftJoy;
+  private Joystick rightJoy;
+  private Joystick xbox;
+
+  // speed controller group init
+  private SpeedControllerGroup leftSC;
+  private SpeedControllerGroup rightSC;
+
+  // robot drive init
+  private DifferentialDrive robotDrive;
+
   private static final String kDefaultAuto = "Default";
   private static final String kCustomAuto = "My Auto";
   private String m_autoSelected;
@@ -33,6 +58,28 @@ public class Robot extends TimedRobot {
     m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
     m_chooser.addOption("My Auto", kCustomAuto);
     SmartDashboard.putData("Auto choices", m_chooser);
+
+    // Assign joysticks to different usb ports.
+    leftJoy = new Joystick(0);
+    rightJoy = new Joystick(1);
+    xbox = new Joystick(2);
+
+    // Assign motor controllers to pwm ports.
+    frontLeft = new Spark(0);
+    rearLeft = new Spark(1);
+    frontRight = new Spark(2);
+    rearRight = new Spark(3);
+
+    // Invert left side motors
+    frontLeft.set(-1);
+    rearLeft.set(-1);
+
+    // Assign motor controllers to speed groups
+    leftSC = new SpeedControllerGroup(frontLeft, rearLeft);
+    rightSC = new SpeedControllerGroup(frontRight, rearRight);
+
+    //Assign speed groups to drive group
+    robotDrive = new DifferentialDrive(leftSC, rightSC);
   }
 
   /**
@@ -86,6 +133,9 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopPeriodic() {
+
+    // Once again, sad and lonely tank drive code.
+    robotDrive.tankDrive(leftJoy.getRawAxis(1), rightJoy.getRawAxis(1));
   }
 
   /**
