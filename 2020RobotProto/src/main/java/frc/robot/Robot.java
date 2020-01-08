@@ -14,6 +14,9 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.networktables.NetworkTableInstance;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -133,6 +136,38 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopPeriodic() {
+    //Joystick buttons
+    double xrTrigger = xbox.getRawAxis(3);
+
+    // Limelight code
+        //Limelight variables
+        double tv = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tv").getDouble(0);
+        double tx = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tx").getDouble(0);
+        double ty = NetworkTableInstance.getDefault().getTable("limelight").getEntry("ty").getDouble(0);
+        double ta = NetworkTableInstance.getDefault().getTable("limelight").getEntry("ta").getDouble(0);
+    
+        //Send variables to dashboard
+        SmartDashboard.putNumber("LimelightX", tx);
+        SmartDashboard.putNumber("LimelightY", ty);
+        SmartDashboard.putNumber("LimelightArea", ta);
+        SmartDashboard.putNumber("TargetValid", tv);
+
+    if(xrTrigger >= 0.5){
+      if(tv == 1){
+        if(tx >= 9 && tx <= 27){
+          robotDrive.tankDrive(0.5, -0.5);
+        }
+        else if(tx >= -27 && tx <= -9){
+          robotDrive.tankDrive(-0.5, 0.5);
+        }
+        else if(tx >= -8 && tx <= 8){
+          robotDrive.tankDrive(0, 0);
+        }
+      }
+      else{
+        robotDrive.tankDrive(0.5, -0.5);
+      }
+    }
 
     // Once again, sad and lonely tank drive code.
     robotDrive.tankDrive(leftJoy.getRawAxis(1), rightJoy.getRawAxis(1));
