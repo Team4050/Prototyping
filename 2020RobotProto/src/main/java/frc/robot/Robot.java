@@ -168,9 +168,10 @@ public class Robot extends TimedRobot {
         robotDrive.tankDrive(0.5, -0.5);
       }
     }
-
-    // Once again, sad and lonely tank drive code.
-    robotDrive.tankDrive(leftJoy.getRawAxis(1), rightJoy.getRawAxis(1));
+    else{
+      // Once again, sad and lonely tank drive code.
+      robotDrive.tankDrive(leftJoy.getRawAxis(1), rightJoy.getRawAxis(1));
+    }
   }
 
   /**
