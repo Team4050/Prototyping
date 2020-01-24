@@ -19,6 +19,11 @@ import edu.wpi.first.wpiutil.math.MathUtil;
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.util.Color;
+import edu.wpi.first.wpilibj.I2C;
+import com.revrobotics.ColorSensorV3;
+import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.AnalogInput;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -30,6 +35,22 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 public class Robot extends TimedRobot {
 
   // Use this area to initialize different parts of the robot and certain variables.
+
+  //Ultasonic Sensor
+  private static final double kHoldDistance = 12.0;
+  private static final double kValueToInches = 0.125;
+  private static final double kp = 0.05;
+  private static final int kUltrasonicPort = 1;
+  private final AnalogInput sonic = new AnalogInput(kUltrasonicPort);
+
+  //Limit Switches
+  DigitalInput input = new DigitalInput(0);
+
+  //I2C
+  private final I2C.Port i2cPort = I2C.Port.kOnboard;
+
+  //Color Sensor
+  private final ColorSensorV3 m_colorSensor = new ColorSensorV3(i2cPort);
 
   // motor init
   private Spark frontLeft;
@@ -110,6 +131,26 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotPeriodic() {
+    //Color Sensor
+    Color detectedColor = m_colorSensor.getColor();
+    double IR = m_colorSensor.getIR();
+
+    SmartDashboard.putNumber("Red", detectedColor.red);
+    SmartDashboard.putNumber("Green", detectedColor.green);
+    SmartDashboard.putNumber("Blue", detectedColor.blue);
+    SmartDashboard.putNumber("IR", IR);
+
+    int proximity = m_colorSensor.getProximity();
+
+    SmartDashboard.putNumber("Proximity", proximity);
+
+    boolean limitpressed = input.get();
+    SmartDashboard.putBoolean("Testlimit", limitpressed);
+
+    
+    //Ultrasonic
+    double currentDistance = sonic.getValue() * 0.0508474576;
+    SmartDashboard.putNumber("Distance", currentDistance);
 
   }
 
@@ -153,10 +194,12 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
 
+    //PID
     kP = 0.04;
     kI = 0.07;
     kD = 0;
 
+    //Limelight
     final NetworkTable table = NetworkTableInstance.getDefault().getTable("limelight");
     final NetworkTableEntry tx = table.getEntry("tx");
     final NetworkTableEntry ty = table.getEntry("ty");
