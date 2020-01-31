@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Spark;
 import edu.wpi.first.wpilibj.SpeedControllerGroup;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.controller.PIDController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -24,6 +25,12 @@ import edu.wpi.first.wpilibj.I2C;
 import com.revrobotics.ColorSensorV3;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.AnalogInput;
+import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.FeedbackDevice;
+import com.ctre.phoenix.motorcontrol.StatusFrameEnhanced;
+import com.ctre.phoenix.motorcontrol.can.*;
+
+
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -60,6 +67,7 @@ public class Robot extends TimedRobot {
   private double kP;
   private double kI;
   private double kD;
+  TalonSRX _tal = new TalonSRX(2);
 
   //limelight
   PIDController lime = new PIDController(kP, kI, kD);
@@ -82,7 +90,6 @@ public class Robot extends TimedRobot {
   private final SendableChooser<String> m_chooser = new SendableChooser<>();
   //pid
   int integral, previous_error, setpoint = 0;
-  private double x;
   private double rcw;
 
   /**
@@ -129,41 +136,47 @@ public class Robot extends TimedRobot {
    * <p>This runs after the mode specific periodic functions, but before
    * LiveWindow and SmartDashboard integrated updating.
    */
+  
   @Override
   public void robotPeriodic() {
     //Color Sensor
-    Color detectedColor = m_colorSensor.getColor();
-    double IR = m_colorSensor.getIR();
+    final Color detectedColor = m_colorSensor.getColor();
+    final double IR = m_colorSensor.getIR();
+
+    final double velocity = _tal.getSelectedSensorVelocity(0);    
+    SmartDashboard.putNumber("vel", velocity);
+    final double position = _tal.getSelectedSensorPosition(0);    
+    SmartDashboard.putNumber("position", position);
 
     SmartDashboard.putNumber("Red", detectedColor.red);
     SmartDashboard.putNumber("Green", detectedColor.green);
     SmartDashboard.putNumber("Blue", detectedColor.blue);
     SmartDashboard.putNumber("IR", IR);
 
-    int proximity = m_colorSensor.getProximity();
+    final int proximity = m_colorSensor.getProximity();
 
     SmartDashboard.putNumber("Proximity", proximity);
 
-    boolean limitpressed = input.get();
+    final boolean limitpressed = input.get();
     SmartDashboard.putBoolean("Testlimit", limitpressed);
 
-    
-    //Ultrasonic
-    double currentDistance = sonic.getValue() * 0.0508474576;
+    // Ultrasonic
+    final double currentDistance = sonic.getValue() * 0.0508474576;
     SmartDashboard.putNumber("Distance", currentDistance);
 
   }
 
   /**
    * This autonomous (along with the chooser code above) shows how to select
-   * between different autonomous modes using the dashboard. The sendable
-   * chooser code works with the Java SmartDashboard. If you prefer the
-   * LabVIEW Dashboard, remove all of the chooser code and uncomment the
-   * getString line to get the auto name from the text box below the Gyro
+   * between different autonomous modes using the dashboard. The sendable chooser
+   * code works with the Java SmartDashboard. If you prefer the LabVIEW Dashboard,
+   * remove all of the chooser code and uncomment the getString line to get the
+   * auto name from the text box below the Gyro
    *
-   * <p>You can add additional auto modes by adding additional comparisons to
-   * the switch structure below with additional strings. If using the
-   * SendableChooser make sure to add them to the chooser code above as well.
+   * <p>
+   * You can add additional auto modes by adding additional comparisons to the
+   * switch structure below with additional strings. If using the SendableChooser
+   * make sure to add them to the chooser code above as well.
    */
   @Override
   public void autonomousInit() {
@@ -178,28 +191,90 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousPeriodic() {
     switch (m_autoSelected) {
-      case kCustomAuto:
-        // Put custom auto code here
-        break;
-      case kDefaultAuto:
-      default:
-        // Put default auto code here
-        break;
+    case kCustomAuto:
+      // Put custom auto code here
+      break;
+    case kDefaultAuto:
+    default:
+    if (_tal.getSelectedSensorPosition() < 16384 && _tal.getSelectedSensorPosition() > 0){
+      _tal.set(ControlMode.PercentOutput, 0);
+    }
+    else if (_tal.getSelectedSensorPosition() > 16384){
+      _tal.set(ControlMode.PercentOutput, -0.30);
+    }
+    else if (_tal.getSelectedSensorPosition() < 0){
+      _tal.set(ControlMode.PercentOutput, 0.30);
+    }
+    Timer.delay(1);
+    if (_tal.getSelectedSensorPosition() < -2048 && _tal.getSelectedSensorPosition() > -16384){
+      _tal.set(ControlMode.PercentOutput, 0);
+    }
+    else if (_tal.getSelectedSensorPosition() > -2048){
+      _tal.set(ControlMode.PercentOutput, -0.30);
+    }
+    else if (_tal.getSelectedSensorPosition() < -16384){
+      _tal.set(ControlMode.PercentOutput, 0.30);
+    }
+    Timer.delay(1);
+    if (_tal.getSelectedSensorPosition() < 16384 && _tal.getSelectedSensorPosition() > 0){
+      _tal.set(ControlMode.PercentOutput, 0);
+    }
+    else if (_tal.getSelectedSensorPosition() > 16384){
+      _tal.set(ControlMode.PercentOutput, -0.30);
+    }
+    else if (_tal.getSelectedSensorPosition() < 0){
+      _tal.set(ControlMode.PercentOutput, 0.30);
+    }
+      break;
     }
   }
 
   /**
    * This function is called periodically during operator control.
    */
+
+  @Override
+  public void teleopInit() {
+    /* Factory default hardware to prevent unexpected behavior */
+
+    _tal.configFactoryDefault();
+
+    /* Victor will follow Talon */
+    /*
+     * New frame every 1ms, since this is a test project use up as much bandwidth as
+     * possible for the purpose of this test.
+     */
+
+    _tal.setStatusFramePeriod(StatusFrameEnhanced.Status_2_Feedback0, 1);
+    _tal.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative);
+
+    /* Fire the plotter */
+  }
+
   @Override
   public void teleopPeriodic() {
 
-    //PID
+    // Encoder
+    if (xbox.getRawButton(1)) {
+      if (_tal.getSelectedSensorPosition() < 16384 && _tal.getSelectedSensorPosition() > 0){
+        _tal.set(ControlMode.PercentOutput, 0);
+      }
+      else if (_tal.getSelectedSensorPosition() > 16384){
+        _tal.set(ControlMode.PercentOutput, -0.30);
+      }
+      else if (_tal.getSelectedSensorPosition() < 0){
+        _tal.set(ControlMode.PercentOutput, 0.30);
+      }
+    }
+		else 
+      _tal.set(ControlMode.PercentOutput, 0.0);
+
+    // PID
     kP = 0.04;
     kI = 0.07;
     kD = 0;
 
-    //Limelight
+    // Limelight
     final NetworkTable table = NetworkTableInstance.getDefault().getTable("limelight");
     final NetworkTableEntry tx = table.getEntry("tx");
     final NetworkTableEntry ty = table.getEntry("ty");
@@ -218,13 +293,13 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("LimelightValid", v);
 
     // pid
-    final double lspeed = MathUtil.clamp(rcw, -0.4, 0.4);
-    this.x = x;
-    this.setpoint = setpoint;
-    final double error = setpoint - x;
-    this.integral += (error * .02);
-    double derivative = (error - this.previous_error) / .02;
-    this.rcw = kP*error + kI*this.integral + kD*derivative;
+    //final double lspeed = MathUtil.clamp(rcw, -0.4, 0.4);
+    //this.x = x;
+    //this.setpoint = setpoint;
+    //final double error = setpoint - x;
+    //this.integral += (error * .02);
+    //final double derivative = (error - this.previous_error) / .02;
+    //this.rcw = kP*error + kI*this.integral + kD*derivative;
 
     // Joystick buttons
     final double xrTrigger = xbox.getRawAxis(3);
